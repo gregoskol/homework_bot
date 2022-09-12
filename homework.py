@@ -36,17 +36,21 @@ HOMEWORK_STATUSES = {
 
 def send_message(bot, message):
     """Отправка сообщения в Telegram."""
-    bot.send_message(
-        chat_id=TELEGRAM_CHAT_ID,
-        text=message,
-    )
+    try:
+        bot.send_message(
+            chat_id=TELEGRAM_CHAT_ID,
+            text=message,
+        )
+    except Exception as error:
+        logger.error(f"Сбой при отправке сообщения: {error}")
+    else:
+        logger.info("Сообщение успешно отправлено.")
 
 
 def get_api_answer(current_timestamp):
     """Запрос к эндпоинту Практикум.Домашка.
     Возвращает ответ API в формате JSON
     """
-
     timestamp = current_timestamp or int(time.time())
     params = {"from_date": timestamp}
     try:
@@ -65,7 +69,6 @@ def check_response(response):
     """Проверка ответа от API на корректность.
     Возвращает список домашних работ.
     """
-
     try:
         response["homeworks"] and response["current_date"]
     except KeyError:
@@ -81,7 +84,6 @@ def parse_status(homework):
     """Получение информации о последней работе.
     Формирование сообщения со статусом проверки.
     """
-
     homework_name = homework["homework_name"]
     homework_status = homework["status"]
     verdict = HOMEWORK_STATUSES[homework_status]
@@ -92,7 +94,6 @@ def check_tokens():
     """Проверка доступности переменных окружения.
     Возвращает True, если все переменные доступны.
     """
-
     tokens = {
         PRACTICUM_TOKEN: "PRACTICUM_TOKEN",
         TELEGRAM_TOKEN: "TELEGRAM_TOKEN",
@@ -110,7 +111,6 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-
     if check_tokens():
         message_status = ""
         message_error = ""
@@ -128,13 +128,8 @@ def main():
                 pass
             else:
                 if message != message_status:
-                    try:
-                        send_message(bot, message)
-                        message_status = message
-                    except Exception as error:
-                        logger.error(f"Сбой при отправке сообщения: {error}")
-                    else:
-                        logger.info("Сообщение успешно отправлено.")
+                    send_message(bot, message)
+                    message_status = message
                 else:
                     logger.debug("Статус работы не изменился")
                 time.sleep(RETRY_TIME)
