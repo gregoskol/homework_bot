@@ -7,7 +7,6 @@ from logging import StreamHandler
 
 import requests
 from dotenv import load_dotenv
-from telegram import Bot
 
 from exceptions import SendMessageError
 
@@ -101,21 +100,21 @@ def check_tokens():
     return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
-#    Максим, привет! Но ведь в примере в ТЗ лог содержит название
-#    конкретной недоступной переменной, а так мы его не получим
-#    tokens = {
-#        PRACTICUM_TOKEN: "PRACTICUM_TOKEN",
-#        TELEGRAM_TOKEN: "TELEGRAM_TOKEN",
-#        TELEGRAM_CHAT_ID: "TELEGRAM_CHAT_ID",
-#    }
-#    for value in tokens:
-#        if value is None:
-#            logger.critical(
-#                "Отсутствует обязательная переменная окружения: "
-#                f"{tokens[value]}. Программа принудительно остановлена."
-#            )
-#            return False
-#    return True
+def say_hi(update, context):
+    chat = update.effective_chat
+    url = "http://localhost:8000/api/recipes/"
+    response = requests.get(url)
+    response_on_python = response.json()
+    for recipe in response_on_python:
+        if recipe["title"] == update.message.text:
+            context.bot.send_message(
+                chat_id=chat.id, text=recipe["ingredients"]
+            )
+            break
+    else:
+        context.bot.send_message(
+            chat_id=chat.id, text="Я не знаю такого рецепта"
+        )
 
 
 def main():
@@ -129,6 +128,10 @@ def main():
     message_status = ""
     message_error = ""
     bot = Bot(token=TELEGRAM_TOKEN)
+    updater = Updater(token=TELEGRAM_TOKEN)
+    updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
+    updater.start_polling()
+    updater.idle()
     current_timestamp = int(time.time()) - FIRST_TIME_DELTA
     while True:
         try:
